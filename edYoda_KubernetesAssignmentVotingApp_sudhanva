@@ -1,0 +1,117 @@
+
+----------------
+after step 4
+----------------
+commands used
+- git clone  https://github.com/ashishrpandey/example-voting-app
+- cd /root/example-voting-app/k8s-specifications
+- kubectl apply -f .
+
+Snapshot of the cluster once the voting app is running
+
+root@ip-172-31-34-217:~/example-voting-app/k8s-specifications# kubectl get all
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/db-58cc845644-r68m7       1/1     Running   0          33s
+pod/redis-6878558678-jdgvj    1/1     Running   0          33s
+pod/result-86bc6f7b5d-wh6h8   1/1     Running   0          33s
+pod/vote-7d884dd585-xr2nk     1/1     Running   0          33s
+pod/worker-6fc5d5b668-9zjxz   1/1     Running   0          33s
+
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+service/db           ClusterIP   10.98.188.123    <none>        5432/TCP         33s
+service/kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP          4m39s
+service/redis        ClusterIP   10.110.117.30    <none>        6379/TCP         33s
+service/result       NodePort    10.104.145.177   <none>        5001:31003/TCP   33s
+service/vote         NodePort    10.103.3.207     <none>        5000:31002/TCP   33s
+
+NAME                     READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/db       1/1     1            1           33s
+deployment.apps/redis    1/1     1            1           33s
+deployment.apps/result   1/1     1            1           33s
+deployment.apps/vote     1/1     1            1           33s
+deployment.apps/worker   1/1     1            1           33s
+
+NAME                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/db-58cc845644       1         1         1       33s
+replicaset.apps/redis-6878558678    1         1         1       33s
+replicaset.apps/result-86bc6f7b5d   1         1         1       33s
+replicaset.apps/vote-7d884dd585     1         1         1       33s
+replicaset.apps/worker-6fc5d5b668   1         1         1       33s
+root@ip-172-31-34-217:~/example-voting-app/k8s-specifications#
+
+
+
+------------------------------------
+After step 8a - Delete of vote pod 
+------------------------------------
+commands used
+- kubectl delete pod vote-7d884dd585-xr2nk
+
+Observations:
+- No changes were seen on frontend
+- in Unix once the vote pod is deleted, New vote pod is created with new podName/Id
+
+
+snapshot of pods on cluster
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/db-58cc845644-r68m7       1/1     Running   0          74m
+pod/redis-6878558678-jdgvj    1/1     Running   0          74m
+pod/result-86bc6f7b5d-wh6h8   1/1     Running   0          74m
+pod/vote-7d884dd585-g26w8     1/1     Running   0          5m4s
+pod/worker-6fc5d5b668-9zjxz   1/1     Running   0          74m
+ 
+ 
+------------------------------------
+After step 8b - Delete of worker pod 
+------------------------------------
+commands used
+- kubectl delete pod worker-6fc5d5b668-9zjxz 
+
+Observations:
+- No changes were seen on frontend
+- in Unix once the worker pod is deleted, New worker pod is created with new podName/Id
+
+snapshot of pods on cluster
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/db-58cc845644-r68m7       1/1     Running   0          78m
+pod/redis-6878558678-jdgvj    1/1     Running   0          78m
+pod/result-86bc6f7b5d-wh6h8   1/1     Running   0          78m
+pod/vote-7d884dd585-g26w8     1/1     Running   0          8m55s
+pod/worker-6fc5d5b668-lwz4w   1/1     Running   0          57s
+
+
+------------------------------------
+After step 8c - Delete of DB pod 
+------------------------------------
+commands used
+- kubectl delete pod db-58cc845644-r68m7  
+
+Observations:
+- on frontend all the votes data is deleted and "No Votes yet" is displayed in Results page. No changes seen on VotePage
+- in Unix once the DB pod is deleted, New DB pod is created immediately(old pod still in terminating state). Once the new DB pod is running,
+  the result and worker pod's went to error state and hence the result and worker pods are restarted and restart counter incremented
+- Voting system is recovered successfully since New Votes are getting reflected in the results page
+
+
+snapshot of pods on cluster
+NAME                          READY   STATUS    RESTARTS      AGE
+pod/db-58cc845644-qg7q9       1/1     Running   0             40s
+pod/redis-6878558678-jdgvj    1/1     Running   0             82m
+pod/result-86bc6f7b5d-wh6h8   1/1     Running   1 (10s ago)   82m
+pod/vote-7d884dd585-g26w8     1/1     Running   0             12m
+pod/worker-6fc5d5b668-lwz4w   1/1     Running   1 (10s ago)   4m27s
+
+
+-----------------------------------------
+What Happens after the DB pod is deleted
+-----------------------------------------
+Once the DB pod is deleted, 
+- the worker pod goes to error state and subsequently restarts since it was accessing the DB to push the voting data to the DB
+- the results pod goes to error state and subsequently restarts since it was accessing the DB to pull the voting data from the DB
+- once all the pods are back in running, we see that the old Votes are lost, but the new votes are reflected.
+
+
+---------------------------------------------
+some of the concepts learnt from this session
+---------------------------------------------
+kubernetes, containers, pods, replicaset, service, deployment, Daemonset, job, Volumes, PV, PVC, Statefulsets.
