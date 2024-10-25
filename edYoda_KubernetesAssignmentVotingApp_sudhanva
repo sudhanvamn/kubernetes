@@ -106,8 +106,8 @@ pod/worker-6fc5d5b668-lwz4w   1/1     Running   1 (10s ago)   4m27s
 What Happens after the DB pod is deleted
 -----------------------------------------
 Once the DB pod is deleted, 
-- the worker pod goes to error state and subsequently restarts since it was accessing the DB to push the voting data to the DB
-- the results pod goes to error state and subsequently restarts since it was accessing the DB to pull the voting data from the DB
+- the worker pod goes to error state and subsequently restarts the container since it was accessing the DB to push the voting data to the DB
+- the results pod goes to error state and subsequently restarts the container since it was accessing the DB to pull the voting data from the DB
 - once all the pods are back in running, we see that the old Votes are lost, but the new votes are reflected.
 
 
